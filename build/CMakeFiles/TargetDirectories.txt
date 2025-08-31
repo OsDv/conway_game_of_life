@@ -1,5 +1,0 @@
-C:/Users/dell/Documents/GitHub/game_of_life/build/CMakeFiles/gpu_gol.dir
-C:/Users/dell/Documents/GitHub/game_of_life/build/CMakeFiles/gameOfLife.dir
-C:/Users/dell/Documents/GitHub/game_of_life/build/CMakeFiles/web_gol.dir
-C:/Users/dell/Documents/GitHub/game_of_life/build/CMakeFiles/edit_cache.dir
-C:/Users/dell/Documents/GitHub/game_of_life/build/CMakeFiles/rebuild_cache.dir
