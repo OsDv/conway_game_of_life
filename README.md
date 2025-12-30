@@ -9,6 +9,8 @@ This project is an implementation of Conway's Game of Life, a cellular automaton
 - **Optimized Rendering**: Efficient rendering of the grid using OpenGL.
 - **Camera Controls**: Navigate the simulation using keyboard inputs.
 - **Zoom Functionality**: Adjust the zoom level for better visualization.
+- **Draw Custom Grid** : Use mouse to modify the state of cells
+- **Adjustable Generation Speed and Target FPS** 
 
 ## Requirements
 
@@ -48,10 +50,14 @@ To build and run this project, you need the following:
    ```bash
    emcmake cmake -S . -B build -G Ninja
    emmake Ninja -C build
+   # Alternative
+   cmake --build build
    ```
 3. Run the WebAssembly application:
    ```bash
    emrun --no_browser --port 8080 build/gameOfLife.html
+   # for the GPU accelerated version
+   emrun --no_browser --port 8080 build/gpu_gol.html
    ```
 4. Open your web browser and navigate to `http://localhost:8080/gameOfLife.html`.
 ## Controls
@@ -64,7 +70,9 @@ To build and run this project, you need the following:
 
 ## File Structure
 
-- `game_of_life.c`: Main source code for the simulation.
+- `game_of_life.c`: Main source code for the simulation (CPU version) uses OpenGL for renderrin.
+- `gpu_gol.c`: GPU accelerated version uses OpenGL/Raylib, GLSL shaders
+- `web_gol.c`: Web version uses Raylib for rendering
 - `externals/`: Contains external dependencies like `glfw.a` and `glad.c`.
 - `CMakeLists.txt`: Build configuration file.
 - `README.md`: Project documentation.
