@@ -1,17 +1,17 @@
 cmake_minimum_required(VERSION 3.31)
 project(gameOfLife C)
 set(CMAKE_C_STANDARD 99)
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 link_directories(${CMAKE_SOURCE_DIR}/externals)
 include_directories(${CMAKE_SOURCE_DIR}/externals)
 
 
-
-
 add_executable(gpu_gol
         gpu_gol.c
 )
+
+
 if (EMSCRIPTEN)
 include_directories(${CMAKE_SOURCE_DIR}/externals)
 add_executable(gameOfLife
@@ -46,16 +46,19 @@ string(APPEND LINK_FLAGS2 "--embed-file ${CMAKE_SOURCE_DIR}/es_gol.fs@/es_gol.fs
 set_target_properties(gpu_gol PROPERTIES LINK_FLAGS "${LINK_FLAGS2}")
 target_compile_definitions(gpu_gol PRIVATE PLATFORM_WEB)
 else()
+find_package(Threads REQUIRED)
+  # CPU (multithread) version with openGL
 add_executable(gameOfLife
         game_of_life.c
         externals/glad.c
 )
-add_executable(web_gol
-        web_gol.c
-
-)
-find_package(Threads REQUIRED)
-target_link_libraries(web_gol PRIVATE ${CMAKE_SOURCE_DIR}/externals/libraylib.a -lopengl32 -lgdi32 -lwinmm Threads::Threads)
-target_link_libraries(gpu_gol PRIVATE ${CMAKE_SOURCE_DIR}/externals/libraylib.a -lopengl32 -lgdi32 -lwinmm Threads::Threads)
+if (WIN32)
+target_link_libraries(gpu_gol PRIVATE ${CMAKE_SOURCE_DIR}/externals/libraylib.a -lopengl32 -lgdi32 -lwinmm )
 target_link_libraries(gameOfLife glfw3 opengl32 Threads::Threads)
+endif(WIN32)
+if (UNIX)
+  target_link_libraries(gpu_gol PRIVATE ${CMAKE_SOURCE_DIR}/externals/libraylib_linux.a m z dl pthread rt X11)
+  target_link_libraries(gameOfLife glfw m GL Threads::Threads)
+endif(UNIX)
+
 endif()
