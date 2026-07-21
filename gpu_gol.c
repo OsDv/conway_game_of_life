@@ -5,7 +5,8 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
-
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
 
 #include "./shaders/es_draw.fs.h"
 #include "./shaders/es_gol.fs.h"
@@ -23,7 +24,8 @@ float updateTimer = 0;
 #define GRID_HEIGHT 1000
 #define GRID_WIDTH 1000
 const float MAX_ZOOM = WIDTH / 20;
-#define CELL_COLOR WHITE
+Color GUI_TEXT_COLOR = RAYWHITE;
+Color CELL_COLOR = RAYWHITE;
 // Global variables
 Camera2D camera = {0};
 float cameraVelocity = GRID_WIDTH / 100;
@@ -55,6 +57,9 @@ void generateRandomGrid(RenderTexture2D tex);
 bool Paused = false;
 bool isDrawGrid = false;
 bool isDrawStats = true;
+bool showCellColorPicker=false;
+Rectangle controlPanelBounds =
+  (Rectangle){.x = 50, .y = 350, .height = 150, .width = 150};
 // Draw Grid Properties
 const float GridLinesThickness = 0.05f;
 const float GridLinesOffset = GridLinesThickness / 2;
@@ -68,7 +73,7 @@ int selectedTexture = 0;
 Shader ManualDrawShader;
 Shader shader;
 unsigned int invertionTargetLoc;
-
+int shaderCellColorLoc;
 int main() {
   SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_MAXIMIZED);
   InitWindow(WIDTH, HEIGHT, "GPU Game Of Life");
@@ -91,7 +96,6 @@ int main() {
   camera.target = (Vector2){(float)(GRID_WIDTH / 2), (float)(GRID_HEIGHT / 2)};
   // Set first generation Random
   generateRandomGrid(state[selectedTexture]);
-
 #ifdef __EMSCRIPTEN__
   // ManualDrawShader = LoadShader(__es_web_vs, __es_draw_fs);
   ManualDrawShader = LoadShaderFromMemory(es_web_vs, __es_draw_fs);
@@ -100,6 +104,7 @@ int main() {
     return 0x10;
   Vector2 gridSize = {GRID_WIDTH, GRID_HEIGHT};
   int size_loc = GetShaderLocation(shader, "gridSize");
+  shaderCellColorLoc = GetShaderLocation(shader, "cell_color");
   SetShaderValue(shader, size_loc, &gridSize, SHADER_UNIFORM_VEC2);
   size_loc = GetShaderLocation(ManualDrawShader, "gridSize");
   SetShaderValue(ManualDrawShader, size_loc, &gridSize, SHADER_UNIFORM_VEC2);
@@ -115,6 +120,7 @@ int main() {
   SetShaderValue(shader, size_loc, &gridSize, SHADER_UNIFORM_IVEC2);
   size_loc = GetShaderLocation(ManualDrawShader, "gridSize");
   SetShaderValue(ManualDrawShader, size_loc, &gridSize, SHADER_UNIFORM_IVEC2);
+  shaderCellColorLoc = GetShaderLocation(shader, "cell_color");
 #endif
   invertionTargetLoc = GetShaderLocation(ManualDrawShader, "invertionTarget");
 // liveCounterLocation = GetShaderLocation(shader, "liveCounter");
@@ -185,17 +191,20 @@ void ProcessInputs() {
     Vector2 worldPos = GetScreenToWorld2D(mousePos, camera);
     int cellX = (int)(worldPos.x);
     int cellY = (int)(worldPos.y);
-    if (cellX >= 0 && cellX < GRID_WIDTH && cellY >= 0 && cellY < GRID_HEIGHT) {
-      if ((cellX != drawLocation[0] || cellY != drawLocation[1])) {
-        drawLocation[0] = cellX;
-        drawLocation[1] = cellY;
-        isDrawCommand = true;
+    if (!isDrawStats || !CheckCollisionPointRec(mousePos, controlPanelBounds)) {
+      if (cellX >= 0 && cellX < GRID_WIDTH && cellY >= 0 && cellY < GRID_HEIGHT) {
+	if ((cellX != drawLocation[0] || cellY != drawLocation[1])) {
+	  drawLocation[0] = cellX;
+	  drawLocation[1] = cellY;
+	  isDrawCommand = true;
         // printf("Drawing! on: %d, %d\n",cellX,cellY);
         gridLifeTime = 0;
         current_generation = 0;
-      }
-      Paused = true;
+	}
+	Paused = true;
+    }  
     }
+    
   }
   // Fps settings
   if (IsKeyPressed(KEY_F)) {
@@ -237,6 +246,8 @@ void main_loop() {
     BeginTextureMode(state[1 - selectedTexture]);
     ClearBackground(BLACK);
     BeginShaderMode(shader);
+    Vector4 cellColor =(Vector4){(float)CELL_COLOR.r/255,(float)CELL_COLOR.g/255,(float)CELL_COLOR.b/255,1.0f};
+    SetShaderValue(shader, shaderCellColorLoc, &cellColor, SHADER_UNIFORM_VEC4);
     DrawTexture(state[selectedTexture].texture, 0, 0, WHITE);
     EndShaderMode();
     EndTextureMode();
@@ -257,29 +268,36 @@ void main_loop() {
     DrawRectangleLines(10, 10, 500, 155, BLUE);
     float fontSize = 20;
     DrawText("Game controls:", 20, 20, 15, BLACK);
-    DrawText("- WASD to move Camera", 40, 40, fontSize, CELL_COLOR);
-    DrawText("- Mouse Wheel to Zoom in-out", 40, 60, fontSize, CELL_COLOR);
-    DrawText("- R to Randomize the grid", 40, 80, fontSize, CELL_COLOR);
-    DrawText("- C to Clear the grid", 40, 100, fontSize, CELL_COLOR);
-    DrawText("- [SPACE] to PAUSE/RESUME", 40, 120, fontSize, CELL_COLOR);
+    DrawText("- WASD to move Camera", 40, 40, fontSize, GUI_TEXT_COLOR);
+    DrawText("- Mouse Wheel to Zoom in-out", 40, 60, fontSize, GUI_TEXT_COLOR);
+    DrawText("- R to Randomize the grid", 40, 80, fontSize, GUI_TEXT_COLOR);
+    DrawText("- C to Clear the grid", 40, 100, fontSize, GUI_TEXT_COLOR);
+    DrawText("- [SPACE] to PAUSE/RESUME", 40, 120, fontSize, GUI_TEXT_COLOR);
     DrawText(TextFormat("- DOWN/UP Adjust update speed: %d gen/s",
                         targetGenerationsPerSecond),
-             40, 140, fontSize, CELL_COLOR);
+             40, 140, fontSize, GUI_TEXT_COLOR);
     // Stats
     DrawRectangle(10, 200, 350, 100, Fade(LIME, 0.5f));
     DrawRectangleLines(10, 200, 350, 130, GREEN);
     DrawText(TextFormat("Generation: %d", current_generation), 40, 230, 20,
-             CELL_COLOR);
+             GUI_TEXT_COLOR);
     // DrawText(TextFormat("Population: %d", liveCounter), 40, 250, 20,
-    // CELL_COLOR);
+    // GUI_TEXT_COLOR);
     DrawText(TextFormat("Generations per second: %.2f ",
                         current_generation / (gridLifeTime + 1)),
-             40, 270, 20, CELL_COLOR);
+             40, 270, 20, GUI_TEXT_COLOR);
     DrawText(TextFormat("Target FPS: %d ", FPS_VALUES[current_fps]), 40, 300,
-             20, CELL_COLOR);
+             20, GUI_TEXT_COLOR);
     DrawFPS(WIDTH - 300, 10);
 
     DrawText("[TAB] TO HIDE", 50, 330, 25, Fade(YELLOW, 0.7f));
+    // Cells color picker
+    Rectangle colorPickerToggleBounds = (Rectangle){.x = controlPanelBounds.x, .y = controlPanelBounds.y+5, .height = 20, .width = 100};
+    Rectangle colorPickerBounds =
+        (Rectangle){.x = controlPanelBounds.x, .y = colorPickerToggleBounds.y+colorPickerToggleBounds.height, .height = 100, .width = 100};
+    GuiGroupBox(controlPanelBounds, "Control Panel");
+    GuiToggle(colorPickerToggleBounds,"Cells Color",&showCellColorPicker);
+    if (showCellColorPicker)GuiColorPicker(colorPickerBounds,"Cells Color Picker",&CELL_COLOR);
     if (Paused) {
 
       DrawText("PAUSED", (WIDTH - MeasureText("PAUSED", 20)) / 2, HEIGHT - 23,

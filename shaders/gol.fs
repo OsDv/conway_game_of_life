@@ -13,6 +13,8 @@ uniform sampler2D texture0;
 out vec4 finalColor;
 //uniform int liveCounter;
 uniform ivec2 gridSize;
+// uniform for cells color
+uniform vec4 cell_color;
 bool grid(float x, float y)
 {
 	float tx = x/gridSize.x;
@@ -39,6 +41,6 @@ void main()
 		r=1;
 	//	liveCounter--;
 	}
-	finalColor = vec4(transition[r*9+liveNeighbours]);
+	finalColor = vec4(transition[r*9+liveNeighbours])*cell_color;
 	//liveCounter += transition[r*9+liveNeighbours];
 }

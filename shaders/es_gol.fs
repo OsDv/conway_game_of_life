@@ -5,7 +5,7 @@ in vec2 fragTexCoord;
 
 uniform sampler2D texture0;
 uniform vec2 gridSize;
-
+uniform vec4 cell_color;
 out vec4 FragColor;
 
 float transition(float state, float neighbors) {
@@ -40,5 +40,5 @@ void main() {
     vec4 t = texture(texture0, vec2(fragTexCoord.x, 1.0 - fragTexCoord.y));
     float state = t.x > 0.5 ? 1.0 : 0.0;
     float next = transition(state, liveNeighbours);
-    FragColor = vec4(next, next, next, 1.0);
+    FragColor = vec4(next, next, next, 1.0)*cell_color;
 }

@@ -7,5 +7,5 @@ find "$SHADER_DIR" -type f \( -name "*.fs" -o -name "*.vs" \) | while read -r sh
   header="${shader}.h"
 
   echo "Generating $header"
-  xxd -i "$shader" >"$header"
+  xxd -t -i "$shader" >"$header"
 done
