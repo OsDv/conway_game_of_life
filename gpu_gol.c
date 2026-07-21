@@ -37,6 +37,7 @@ unsigned int liveCounterLocation = 0;
 #define MAX_DRAW_COMMANDS 10
 int drawLocation[2] = {-1, -1};
 bool isDrawCommand = false;
+int isGradient = 0;
 // FPS Setting
 int FPS_VALUES[] = {40, 60, 90, 120, 144};
 int FPS_VALUES_COUNT = 5;
@@ -57,7 +58,6 @@ void generateRandomGrid(RenderTexture2D tex);
 bool Paused = false;
 bool isDrawGrid = false;
 bool isDrawStats = true;
-bool showCellColorPicker=false;
 Rectangle controlPanelBounds =
   (Rectangle){.x = 50, .y = 350, .height = 150, .width = 150};
 // Draw Grid Properties
@@ -74,6 +74,7 @@ Shader ManualDrawShader;
 Shader shader;
 unsigned int invertionTargetLoc;
 int shaderCellColorLoc;
+int shaderIsGradeientLoc;
 int main() {
   SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_MAXIMIZED);
   InitWindow(WIDTH, HEIGHT, "GPU Game Of Life");
@@ -98,8 +99,8 @@ int main() {
   generateRandomGrid(state[selectedTexture]);
 #ifdef __EMSCRIPTEN__
   // ManualDrawShader = LoadShader(__es_web_vs, __es_draw_fs);
-  ManualDrawShader = LoadShaderFromMemory(es_web_vs, __es_draw_fs);
-  shader = LoadShaderFromMemory(__es_web_vs, __es_gol_fs);
+  ManualDrawShader = LoadShaderFromMemory((const char *)__es_web_vs, (const char *)__es_draw_fs);
+  shader = LoadShaderFromMemory((const char *)__es_web_vs, (const char *)__es_gol_fs);
   if (!IsShaderValid(ManualDrawShader))
     return 0x10;
   Vector2 gridSize = {GRID_WIDTH, GRID_HEIGHT};
@@ -122,6 +123,8 @@ int main() {
   SetShaderValue(ManualDrawShader, size_loc, &gridSize, SHADER_UNIFORM_IVEC2);
   shaderCellColorLoc = GetShaderLocation(shader, "cell_color");
 #endif
+  shaderIsGradeientLoc = shaderCellColorLoc = GetShaderLocation(shader, "isGradient");
+  SetShaderValue(shader, shaderIsGradeientLoc,&isGradient,SHADER_UNIFORM_INT);
   invertionTargetLoc = GetShaderLocation(ManualDrawShader, "invertionTarget");
 // liveCounterLocation = GetShaderLocation(shader, "liveCounter");
 // SetShaderValue(shader,liveCounterLocation,&liveCounter,SHADER_UNIFORM_INT);
@@ -258,7 +261,7 @@ void main_loop() {
   BeginDrawing();
   ClearBackground(BLACK);
   BeginMode2D(camera);
-  DrawTextureEx(state[selectedTexture].texture, (Vector2){0, 0}, 0, 1, WHITE);
+  DrawTextureEx(state[selectedTexture].texture, (Vector2){0, 0}, 0, 1, CELL_COLOR);
   DrawRectangleLines(0, 0, GRID_WIDTH, GRID_HEIGHT, RED);
   if (isDrawGrid)
     DrawGridLInes();
@@ -292,12 +295,26 @@ void main_loop() {
 
     DrawText("[TAB] TO HIDE", 50, 330, 25, Fade(YELLOW, 0.7f));
     // Cells color picker
-    Rectangle colorPickerToggleBounds = (Rectangle){.x = controlPanelBounds.x, .y = controlPanelBounds.y+5, .height = 20, .width = 100};
-    Rectangle colorPickerBounds =
-        (Rectangle){.x = controlPanelBounds.x, .y = colorPickerToggleBounds.y+colorPickerToggleBounds.height, .height = 100, .width = 100};
+    Rectangle colorPickerBounds = (Rectangle){
+      .x = controlPanelBounds.x,
+      .y = controlPanelBounds.y+5,
+      .height = 100,
+      .width = 100};
+    Rectangle gradientButtonBounds =
+        (Rectangle){.x = controlPanelBounds.x, .y = colorPickerBounds.y+colorPickerBounds.height, .height = 20, .width = 100};
+
     GuiGroupBox(controlPanelBounds, "Control Panel");
-    GuiToggle(colorPickerToggleBounds,"Cells Color",&showCellColorPicker);
-    if (showCellColorPicker)GuiColorPicker(colorPickerBounds,"Cells Color Picker",&CELL_COLOR);
+    GuiColorPicker(colorPickerBounds,"Cells Color Picker",&CELL_COLOR);
+    if (GuiButton(gradientButtonBounds, "Toggle Gradient")){
+      isGradient = 1 - isGradient;
+      SetShaderValue(shader, shaderIsGradeientLoc,&isGradient,SHADER_UNIFORM_INT);
+    }
+
+    Rectangle fullscreenButtonBounds =
+      (Rectangle){.x = gradientButtonBounds.x, .y = gradientButtonBounds.y+gradientButtonBounds.height, .height = 20, .width = 100};
+    if (GuiButton(fullscreenButtonBounds, "Toggle Fullscreen")){
+      ToggleFullscreen();
+      }
     if (Paused) {
 
       DrawText("PAUSED", (WIDTH - MeasureText("PAUSED", 20)) / 2, HEIGHT - 23,

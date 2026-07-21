@@ -8,7 +8,7 @@ int transition[18] = {0,0,0,1,0,0,0,0,0,
 						 0,0,1,1,0,0,0,0,0};
 // Input uniform values
 uniform sampler2D texture0;
-
+uniform int isGradient = 0;
 // Output fragment color
 out vec4 finalColor;
 //uniform int liveCounter;
@@ -20,7 +20,7 @@ bool grid(float x, float y)
 	float tx = x/gridSize.x;
     float ty =1.0 - y/gridSize.y;
     vec4 t = texture(texture0, vec2(tx, ty));
-	return (t.x > 0.0);
+	return (t.x == 1.0);
 }
 void main()
 {
@@ -37,10 +37,18 @@ void main()
 	}
 	vec4 t = texture(texture0, vec2(fragTexCoord.x,1-fragTexCoord.y));
 	int r = 0;
-	if (t.x>0) {
+	if (t.x==1.0) {
 		r=1;
 	//	liveCounter--;
 	}
-	finalColor = vec4(transition[r*9+liveNeighbours])*cell_color;
+  if (transition[r*9+liveNeighbours]==1)
+  {
+  	finalColor = vec4(1.0);
+  } else {
+    vec4 t = texture(texture0, vec2(fragTexCoord.x,1-fragTexCoord.y));
+    if(t.x>0)t -= vec4(0.1);
+    if (t.x<0) t=vec4(0.0);
+    finalColor = t*isGradient;
+  }
 	//liveCounter += transition[r*9+liveNeighbours];
 }
