@@ -47,7 +47,7 @@ void main()
   } else {
     vec4 t = texture(texture0, vec2(fragTexCoord.x,1-fragTexCoord.y));
     if(t.x>0)t -= vec4(0.1);
-    if (t.x<0) t=vec4(0.0);
+    if (t.x<0) t=vec4(0.0,0.0,0.0,1.0);
     finalColor = t*isGradient;
   }
 	//liveCounter += transition[r*9+liveNeighbours];
